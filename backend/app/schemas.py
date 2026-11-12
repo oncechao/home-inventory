@@ -72,3 +72,38 @@ class InvitePreview(BaseModel):
     family_id: uuid.UUID
     family_name: str
     already_member: bool
+
+
+# ---------- 位置 ----------
+
+class PathNode(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class LocationIn(BaseModel):
+    name: Name
+    note: Note = ""
+    parent_id: uuid.UUID | None = None
+
+
+class LocationPatch(BaseModel):
+    """不传的字段不修改；parent_id 显式传 null 表示移到顶层。"""
+
+    name: Name | None = None
+    note: Note | None = None
+    parent_id: uuid.UUID | None = None
+
+
+class LocationOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    note: str
+    parent_id: uuid.UUID | None
+    path: list[PathNode]
+    updated_at: UtcDatetime
+    updated_by_name: str | None
+
+
+class LocationDetail(LocationOut):
+    children: list[LocationOut]

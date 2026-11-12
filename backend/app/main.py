@@ -4,7 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import Settings, get_settings
 from app.db import make_engine
-from app.routers import auth, families, invites
+from app.routers import auth, families, invites, locations
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -37,6 +37,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router, prefix="/api")
     app.include_router(families.router, prefix="/api")
     app.include_router(invites.router, prefix="/api")
+    app.include_router(locations.router, prefix="/api")
+    app.include_router(locations.lookup_router, prefix="/api")
 
     return app
 
