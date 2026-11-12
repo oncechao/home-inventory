@@ -5,7 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models import Family, Invite, Item, Location, Membership
-from app.schemas import LocationOut, PathNode
+from app.schemas import ItemOut, LocationOut, PathNode
 
 
 def delete_family(db: Session, family_id: uuid.UUID) -> None:
@@ -78,3 +78,21 @@ def location_out(location: Location, paths: dict[uuid.UUID, list[PathNode]]) -> 
         updated_at=location.updated_at,
         updated_by_name=location.updater.username if location.updater else None,
     )
+
+
+def item_out(item: Item, paths: dict[uuid.UUID, list[PathNode]]) -> ItemOut:
+    return ItemOut(
+        id=item.id,
+        name=item.name,
+        barcode=item.barcode,
+        note=item.note,
+        location_id=item.location_id,
+        path=paths[item.location_id],
+        updated_at=item.updated_at,
+        updated_by_name=item.updater.username if item.updater else None,
+    )
+
+
+def escape_like(text: str) -> str:
+    """让用户输入的 % 和 _ 按字面匹配。配合 ilike(..., escape='\\\\') 使用。"""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

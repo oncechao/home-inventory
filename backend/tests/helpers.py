@@ -23,3 +23,12 @@ def create_location(client, fid, name, parent_id=None):
     r = client.post(f"/api/families/{fid}/locations", json={"name": name, "parent_id": parent_id})
     assert r.status_code == 201, r.text
     return r.json()["id"]
+
+
+def create_item(client, fid, name, location_id, barcode=None, note=""):
+    r = client.post(
+        f"/api/families/{fid}/items",
+        json={"name": name, "location_id": location_id, "barcode": barcode, "note": note},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]

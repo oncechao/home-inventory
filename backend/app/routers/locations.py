@@ -9,6 +9,7 @@ from app.models import Family, Item, Location, Membership, User
 from app.schemas import LocationDetail, LocationIn, LocationOut, LocationPatch
 from app.services import (
     get_location_in_family,
+    item_out,
     location_out,
     location_paths,
     would_create_cycle,
@@ -60,9 +61,13 @@ def get_location(
     children = db.scalars(
         select(Location).where(Location.parent_id == location.id).order_by(Location.name)
     ).all()
+    items = db.scalars(
+        select(Item).where(Item.location_id == location.id).order_by(Item.name)
+    ).all()
     return LocationDetail(
         **location_out(location, paths).model_dump(),
         children=[location_out(c, paths) for c in children],
+        items=[item_out(i, paths) for i in items],
     )
 
 

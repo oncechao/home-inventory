@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.models import as_utc
 
@@ -105,5 +105,49 @@ class LocationOut(BaseModel):
     updated_by_name: str | None
 
 
+# ---------- 物品 ----------
+
+ItemName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+Barcode = Annotated[str, StringConstraints(strip_whitespace=True, max_length=64)]
+
+
+class ItemIn(BaseModel):
+    name: ItemName
+    barcode: Barcode | None = None
+    note: Note = ""
+    location_id: uuid.UUID
+
+    @field_validator("barcode")
+    @classmethod
+    def empty_barcode_to_none(cls, v: str | None) -> str | None:
+        return v or None
+
+
+class ItemPatch(BaseModel):
+    """不传的字段不修改；barcode 显式传 null 或空字符串表示清空。"""
+
+    name: ItemName | None = None
+    barcode: Barcode | None = None
+    note: Note | None = None
+    location_id: uuid.UUID | None = None
+
+    @field_validator("barcode")
+    @classmethod
+    def empty_barcode_to_none(cls, v: str | None) -> str | None:
+        return v or None
+
+
+class ItemOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    barcode: str | None
+    note: str
+    location_id: uuid.UUID
+    path: list[PathNode]
+    updated_at: UtcDatetime
+    updated_by_name: str | None
+
+
 class LocationDetail(LocationOut):
     children: list[LocationOut]
+    items: list[ItemOut]
