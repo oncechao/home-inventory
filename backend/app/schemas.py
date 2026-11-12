@@ -37,3 +37,24 @@ class PasswordIn(BaseModel):
 class UserOut(OrmModel):
     id: uuid.UUID
     username: str
+
+
+# ---------- 家庭 ----------
+
+class FamilyIn(BaseModel):
+    name: Name
+
+
+class FamilyOut(OrmModel):
+    id: uuid.UUID
+    name: str
+
+
+class MemberOut(BaseModel):
+    id: uuid.UUID
+    username: str
+    joined_at: UtcDatetime
+
+
+class FamilyDetail(FamilyOut):
+    members: list[MemberOut]
