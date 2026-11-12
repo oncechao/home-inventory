@@ -20,3 +20,10 @@ def test_vercel_config_routes_api_and_spa():
     assert rewrites[0] == {"source": "/api/(.*)", "destination": "/api/index"}
     assert rewrites[-1] == {"source": "/(.*)", "destination": "/index.html"}
     assert config["outputDirectory"] == "frontend/dist"
+    # 不让 Vercel 根据 requirements.txt 自动套用 FastAPI 预设而忽略 api/index.py
+    assert config["framework"] is None
+    function = config["functions"]["api/index.py"]
+    assert function["includeFiles"] == "backend/app/**"
+    assert function["excludeFiles"] == (
+        "{frontend/**,docs/**,backend/tests/**,backend/alembic/**,**/*.db}"
+    )

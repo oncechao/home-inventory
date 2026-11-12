@@ -29,6 +29,8 @@ def world(client, new_client):
     [
         # 直接访问 A 家庭的路径
         ("get", "/api/families/{fa}", None),
+        ("patch", "/api/families/{fa}", {"name": "x"}),
+        ("delete", "/api/families/{fa}", None),
         ("get", "/api/families/{fa}/locations", None),
         ("get", "/api/families/{fa}/locations/{loc_a}", None),
         ("patch", "/api/families/{fa}/locations/{loc_a}", {"name": "x"}),
@@ -39,6 +41,7 @@ def world(client, new_client):
         ("patch", "/api/families/{fa}/items/{item_a}", {"name": "x"}),
         ("delete", "/api/families/{fa}/items/{item_a}", None),
         ("get", "/api/families/{fa}/invites", None),
+        ("post", "/api/families/{fa}/invites", None),
         ("delete", "/api/families/{fa}/invites/{invite_a}", None),
         ("delete", "/api/families/{fa}/members/{alice_id}", None),
         # 借自己家庭 B 的路径，夹带 A 家庭的 ID
@@ -59,7 +62,7 @@ def world(client, new_client):
         ("get", "/api/locations/{loc_a}", None),
     ],
 )
-def test_bob_cannot_touch_family_a(world, method, url, body):
+def test_bob_cannot_touch_family_a(world, client, method, url, body):
     ids = {k: v for k, v in world.items() if isinstance(v, str)}
     ids["alice_id"] = world["alice"]["id"]
     url = url.format(**ids)
@@ -68,15 +71,26 @@ def test_bob_cannot_touch_family_a(world, method, url, body):
     r = getattr(world["bob"], method)(url, **({"json": body} if body else {}))
     assert r.status_code == 404, (method, url, r.text)
 
+    # 用 alice 的客户端确认 A 家庭的数据没被改动
+    fa = world["fa"]
+    family = client.get(f"/api/families/{fa}").json()
+    assert family["name"] == "A家"
+    assert [m["username"] for m in family["members"]] == ["alice"]
+    item = client.get(f"/api/families/{fa}/items/{world['item_a']}").json()
+    assert item["name"] == "A的护照"
+    assert item["location_id"] == world["loc_a"]
+    loc = client.get(f"/api/families/{fa}/locations/{world['loc_a']}").json()
+    assert loc["name"] == "A的客厅"
+    assert loc["parent_id"] is None
+    invites = client.get(f"/api/families/{fa}/invites").json()
+    assert world["invite_a"] in [i["id"] for i in invites]
+
 
 def test_search_never_leaks_other_family(world):
     bob, fb = world["bob"], world["fb"]
     assert bob.get(f"/api/families/{fb}/items", params={"q": "护照"}).json() == []
     assert bob.get(f"/api/families/{fb}/items", params={"barcode": "111"}).json() == []
     assert [l["name"] for l in bob.get(f"/api/families/{fb}/locations").json()] == ["B的客厅"]
-
-
-def test_family_a_data_unchanged(world, client):
-    fa = world["fa"]
-    assert client.get(f"/api/families/{fa}/items/{world['item_a']}").json()["name"] == "A的护照"
-    assert client.get(f"/api/families/{fa}/locations/{world['loc_a']}").json()["name"] == "A的客厅"
+    assert [f["id"] for f in bob.get("/api/families").json()] == [fb]
+    bob_invites = bob.get(f"/api/families/{fb}/invites").json()
+    assert world["invite_a"] not in [i["id"] for i in bob_invites]
