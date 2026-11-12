@@ -57,3 +57,30 @@ def test_change_password(client, new_client):
     other = new_client()
     assert other.post("/api/auth/login", json={"username": "alice", "password": PASSWORD}).status_code == 401
     assert other.post("/api/auth/login", json={"username": "alice", "password": "newpassword1"}).status_code == 200
+
+
+def test_change_password_revokes_other_sessions(client, new_client):
+    register(client, "alice")
+    other = new_client()
+    other.cookies.set("hi_session", client.cookies.get("hi_session"))
+    assert other.get("/api/auth/me").status_code == 200
+    ok = client.post("/api/auth/password", json={"old_password": PASSWORD, "new_password": "newpassword1"})
+    assert ok.status_code == 204
+    assert other.get("/api/auth/me").status_code == 401
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_session_without_version_is_rejected(client, new_client):
+    import base64
+    import json
+
+    from itsdangerous import TimestampSigner
+
+    user = register(client, "alice")
+    payload = base64.b64encode(json.dumps({"uid": user["id"]}).encode())
+    old_cookie = TimestampSigner("test-secret").sign(payload).decode()
+    other = new_client()
+    other.cookies.set("hi_session", old_cookie)
+    r = other.get("/api/auth/me")
+    assert r.status_code == 401
+    assert r.json()["detail"] == "请先登录"

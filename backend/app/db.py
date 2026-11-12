@@ -24,4 +24,5 @@ def make_engine(url: str) -> Engine:
 
         return engine
     # Vercel 上每次调用可能是新实例：用 Neon 的连接池地址，SQLAlchemy 端不再维护连接池
-    return create_engine(url, poolclass=NullPool)
+    # Neon 的连接池（PgBouncer 事务模式）不支持服务端预编译语句，关掉 psycopg 的自动预编译
+    return create_engine(url, poolclass=NullPool, connect_args={"prepare_threshold": None})

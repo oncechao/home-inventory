@@ -24,6 +24,8 @@ def get_settings() -> Settings:
     secret = os.environ.get("SECRET_KEY", DEV_SECRET)
     if on_vercel and secret == DEV_SECRET:
         raise RuntimeError("线上环境必须设置 SECRET_KEY 环境变量")
+    if on_vercel and not os.environ.get("DATABASE_URL"):
+        raise RuntimeError("线上环境必须设置 DATABASE_URL 环境变量")
     secure_default = "true" if on_vercel else "false"
     return Settings(
         database_url=normalize_db_url(os.environ.get("DATABASE_URL", "sqlite:///./dev.db")),

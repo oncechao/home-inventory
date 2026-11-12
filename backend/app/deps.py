@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.models import Family, Membership, User
+from app.security import session_version
 
 
 def get_db(request: Request) -> Iterator[Session]:
@@ -23,6 +24,8 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
             user = db.get(User, uuid.UUID(raw))
         except ValueError:
             user = None
+    if user is not None and request.session.get("pv") != session_version(user.password_hash):
+        user = None
     if user is None:
         request.session.clear()
         raise HTTPException(status_code=401, detail="请先登录")
