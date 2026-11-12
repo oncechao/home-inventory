@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '../api'
+import { api, ApiError } from '../api'
 import { refreshFamilies, setCurrentFamily } from '../session'
 import type { InvitePreview } from '../types'
 import { toastError } from '../ui'
@@ -11,15 +11,20 @@ const router = useRouter()
 const code = String(route.params.code)
 const preview = ref<InvitePreview | null>(null)
 const invalid = ref(false)
+const failed = ref(false)
 const joining = ref(false)
 
-onMounted(async () => {
+async function load() {
+  invalid.value = false
+  failed.value = false
   try {
     preview.value = await api.get<InvitePreview>(`/invites/${encodeURIComponent(code)}`)
-  } catch {
-    invalid.value = true
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) invalid.value = true
+    else failed.value = true
   }
-})
+}
+onMounted(load)
 
 async function accept() {
   joining.value = true
@@ -40,6 +45,9 @@ async function accept() {
   <van-nav-bar title="加入家庭" />
   <van-empty v-if="invalid" image="error" description="邀请无效或已过期">
     <van-button round type="primary" @click="router.replace('/')">返回首页</van-button>
+  </van-empty>
+  <van-empty v-else-if="failed" image="error" description="加载失败">
+    <van-button round type="primary" @click="load">重试</van-button>
   </van-empty>
   <van-empty v-else-if="preview" image="default" :description="`邀请你加入「${preview.family_name}」`">
     <van-button round type="primary" :loading="joining" @click="accept">

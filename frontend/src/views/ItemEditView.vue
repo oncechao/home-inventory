@@ -22,6 +22,7 @@ const saving = ref(false)
 onMounted(async () => {
   try {
     locations.value = await api.get<Location[]>(`/families/${fid}/locations`)
+    loaded.value = true
     if (editingId.value) {
       const item = await api.get<Item>(`/families/${fid}/items/${editingId.value}`)
       Object.assign(form, {
@@ -36,8 +37,6 @@ onMounted(async () => {
     }
   } catch (e) {
     toastError(e)
-  } finally {
-    loaded.value = true
   }
 })
 

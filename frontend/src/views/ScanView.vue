@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { showFailToast } from 'vant'
 import { api } from '../api'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { session } from '../session'
@@ -13,15 +14,22 @@ const scanned = ref('')
 const manual = ref('')
 const matches = ref<Item[]>([])
 
-/** 本系统生成的位置二维码：https://<当前域名>/l/<uuid> */
+/** 本系统生成的位置二维码：http(s)://<域名>/l/<uuid>（不限域名，换过域名的旧标签也能用） */
 function locationIdFromQr(text: string): string | null {
   try {
     const url = new URL(text)
-    if (url.origin !== window.location.origin) return null
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
     return url.pathname.match(/^\/l\/([0-9a-f-]{36})\/?$/i)?.[1] ?? null
   } catch {
     return null
   }
+}
+
+/** 稍等一会儿再恢复扫码，避免对着同一个码反复触发 */
+function resumeLater() {
+  setTimeout(() => {
+    busy.value = false
+  }, 1500)
 }
 
 async function handle(text: string) {
@@ -30,6 +38,11 @@ async function handle(text: string) {
   const locationId = locationIdFromQr(text)
   if (locationId) {
     router.replace(`/l/${locationId}`)
+    return
+  }
+  if (text.length > 64 || /^[a-z][a-z0-9+.-]*:\/\//i.test(text)) {
+    showFailToast('这不是商品条码')
+    resumeLater()
     return
   }
   scanned.value = text
@@ -42,7 +55,7 @@ async function handle(text: string) {
     else matches.value = items
   } catch (e) {
     toastError(e)
-    busy.value = false
+    resumeLater()
   }
 }
 
@@ -77,7 +90,7 @@ function rescan() {
   <template v-else>
     <BarcodeScanner :paused="busy" @detected="handle" />
     <van-cell-group inset title="扫不出来？手动输入条码">
-      <van-field v-model="manual" placeholder="条码数字" type="text" inputmode="numeric">
+      <van-field v-model="manual" placeholder="条码数字" type="text" inputmode="text">
         <template #button>
           <van-button size="small" type="primary" :disabled="!manual.trim()" @click="handle(manual.trim())">
             查找

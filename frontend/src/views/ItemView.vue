@@ -12,15 +12,22 @@ const router = useRouter()
 const fid = session.currentFamilyId!
 const item = ref<Item | null>(null)
 const notFound = ref(false)
+const failed = ref(false)
 
-onMounted(async () => {
+async function load() {
+  notFound.value = false
+  failed.value = false
   try {
     item.value = await api.get<Item>(`/families/${fid}/items/${route.params.id}`)
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) notFound.value = true
-    else toastError(e)
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) notFound.value = true
+    else {
+      failed.value = true
+      toastError(e)
+    }
   }
-})
+}
+onMounted(load)
 
 async function remove() {
   if (!item.value) return
@@ -61,6 +68,13 @@ async function remove() {
   <template v-else-if="notFound">
     <van-nav-bar title="物品" left-arrow @click-left="router.replace('/')" />
     <van-empty image="search" description="找不到这个物品" />
+  </template>
+  <template v-else-if="failed">
+    <van-nav-bar title="物品" left-arrow @click-left="router.replace('/')" />
+    <van-empty image="error" description="加载失败">
+      <van-button round type="primary" @click="load">重试</van-button>
+      <van-button round style="margin-left: 8px" @click="router.replace('/')">回到首页</van-button>
+    </van-empty>
   </template>
   <van-loading v-else class="center" style="margin-top: 40px" />
 </template>

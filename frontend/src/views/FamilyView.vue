@@ -150,9 +150,12 @@ function onSwitch(a: { id: string }) {
 }
 
 async function logout() {
-  await api.post('/auth/logout')
-  clearSession()
-  router.replace('/login')
+  try {
+    await api.post('/auth/logout')
+  } finally {
+    clearSession()
+    router.replace('/login')
+  }
 }
 </script>
 

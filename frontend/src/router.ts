@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { loadSession, session } from './session'
-import { safeRedirect } from './ui'
+import { safeRedirect, toastError } from './ui'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -33,7 +33,15 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!session.loaded) await loadSession()
+  if (!session.loaded) {
+    try {
+      await loadSession()
+    } catch (e) {
+      // 网络或服务器错误：提示后停在原地，下次导航时会重试
+      toastError(e)
+      return false
+    }
+  }
   if (to.meta.public) return session.user ? safeRedirect(to.query.redirect) : true
   if (!session.user) return { path: '/login', query: { redirect: to.fullPath } }
   if (!to.meta.noFamily && session.families.length === 0) return '/onboarding'

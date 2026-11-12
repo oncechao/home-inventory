@@ -24,6 +24,7 @@ onMounted(async () => {
 })
 
 const labels = computed(() => all.value.filter((l) => selected.value.includes(l.id)))
+const qrReady = computed(() => labels.value.every((l) => qr.value[l.id]))
 
 watch(labels, async (list) => {
   const entries = await Promise.all(
@@ -33,7 +34,7 @@ watch(labels, async (list) => {
         (await toDataURL(`${window.location.origin}/l/${l.id}`, { margin: 1, width: 300, errorCorrectionLevel: 'M' })),
     ]),
   )
-  qr.value = Object.fromEntries(entries)
+  qr.value = { ...qr.value, ...Object.fromEntries(entries) }
 })
 
 function toggleAll() {
@@ -62,7 +63,7 @@ function print() {
       <van-button size="small" @click="toggleAll">
         {{ selected.length === all.length && all.length ? '全不选' : '全选' }}
       </van-button>
-      <van-button size="small" type="primary" icon="printer" :disabled="!labels.length" @click="print">
+      <van-button size="small" type="primary" icon="printer" :disabled="!labels.length || !qrReady" @click="print">
         打印 {{ labels.length }} 张
       </van-button>
     </div>

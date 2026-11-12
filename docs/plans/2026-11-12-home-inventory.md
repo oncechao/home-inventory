@@ -3475,7 +3475,7 @@ git commit -m "feat: add location pages and picker"
 
 **Step 1: 扫码组件**
 
-`vue-qrcode-reader` 在支持原生 BarcodeDetector 的浏览器上直接用原生能力；不支持时（例如 iPhone Safari）会从 jsDelivr CDN 加载 ZXing 的 wasm 文件。摄像头只有在 HTTPS 或 localhost 下可用。
+`vue-qrcode-reader` 5.7 在所有浏览器上都用 `barcode-detector/pure`（ZXing 的 wasm 实现）识别，不用浏览器原生的 BarcodeDetector。它默认从 jsDelivr CDN 加载 `zxing_reader.wasm`，在国内不稳定，加载失败时扫码会一直识别不出来；所以 `frontend/src/main.ts` 里用 `setZXingModuleOverrides` 把 wasm 改成本站自己提供（`zxing-wasm/reader/zxing_reader.wasm?url`，由 Vite 打包进 `dist/assets`）。摄像头只有在 HTTPS 或 localhost 下可用。
 
 `frontend/src/components/BarcodeScanner.vue`：
 

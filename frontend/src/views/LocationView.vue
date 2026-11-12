@@ -11,11 +11,13 @@ const route = useRoute()
 const router = useRouter()
 const detail = ref<LocationDetail | null>(null)
 const notFound = ref(false)
+const failed = ref(false)
 
 async function load() {
   const id = String(route.params.id)
   detail.value = null
   notFound.value = false
+  failed.value = false
   try {
     // 先问这个位置属于哪个家庭：扫别的家庭的二维码时自动切换过去
     const { family_id } = await api.get<{ family_id: string }>(`/locations/${id}`)
@@ -23,8 +25,11 @@ async function load() {
     if (session.currentFamilyId !== family_id) setCurrentFamily(family_id)
     detail.value = await api.get<LocationDetail>(`/families/${family_id}/locations/${id}`)
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) notFound.value = true
-    else toastError(e)
+    if (e instanceof ApiError && (e.status === 404 || e.status === 422)) notFound.value = true
+    else {
+      failed.value = true
+      toastError(e)
+    }
   }
 }
 watch(() => route.params.id, load, { immediate: true })
@@ -99,6 +104,14 @@ async function remove() {
     <van-nav-bar title="位置" left-arrow @click-left="router.replace('/')" />
     <van-empty image="search" description="找不到这个位置，或者你不是它所在家庭的成员">
       <van-button round type="primary" @click="router.replace('/')">回到首页</van-button>
+    </van-empty>
+  </template>
+
+  <template v-else-if="failed">
+    <van-nav-bar title="位置" left-arrow @click-left="router.replace('/')" />
+    <van-empty image="error" description="加载失败">
+      <van-button round type="primary" @click="load">重试</van-button>
+      <van-button round style="margin-left: 8px" @click="router.replace('/')">回到首页</van-button>
     </van-empty>
   </template>
 

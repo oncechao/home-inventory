@@ -11,20 +11,23 @@ const q = ref('')
 const items = ref<Item[]>([])
 const loading = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
+let latest = 0 // 只采用最后一次请求的结果
 
 async function search() {
   const fid = session.currentFamilyId
   if (!fid) return
+  const seq = ++latest
   loading.value = true
   try {
     const query = q.value.trim()
-    items.value = await api.get<Item[]>(
+    const result = await api.get<Item[]>(
       `/families/${fid}/items${query ? `?q=${encodeURIComponent(query)}` : ''}`,
     )
+    if (seq === latest) items.value = result
   } catch (e) {
-    toastError(e)
+    if (seq === latest) toastError(e)
   } finally {
-    loading.value = false
+    if (seq === latest) loading.value = false
   }
 }
 
