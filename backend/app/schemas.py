@@ -58,3 +58,17 @@ class MemberOut(BaseModel):
 
 class FamilyDetail(FamilyOut):
     members: list[MemberOut]
+
+
+# ---------- 邀请 ----------
+
+class InviteOut(OrmModel):
+    id: uuid.UUID
+    code: str
+    expires_at: UtcDatetime
+
+
+class InvitePreview(BaseModel):
+    family_id: uuid.UUID
+    family_name: str
+    already_member: bool

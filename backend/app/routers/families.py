@@ -1,13 +1,17 @@
+import secrets
 import uuid
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.deps import current_user, get_db, member_family
-from app.models import Family, Membership, User
-from app.schemas import FamilyDetail, FamilyIn, FamilyOut, MemberOut
+from app.models import Family, Invite, Membership, User, as_utc, utcnow
+from app.schemas import FamilyDetail, FamilyIn, FamilyOut, InviteOut, MemberOut
 from app.services import delete_family
+
+INVITE_TTL = timedelta(days=7)
 
 router = APIRouter(prefix="/families", tags=["families"])
 
@@ -84,4 +88,45 @@ def remove_member(
     )
     if remaining == 0:
         delete_family(db, family.id)
+    db.commit()
+
+
+@router.get("/{family_id}/invites", response_model=list[InviteOut])
+def list_invites(family: Family = Depends(member_family), db: Session = Depends(get_db)):
+    now = utcnow()
+    invites = db.scalars(
+        select(Invite)
+        .where(Invite.family_id == family.id, Invite.revoked_at.is_(None))
+        .order_by(Invite.created_at.desc())
+    ).all()
+    return [i for i in invites if as_utc(i.expires_at) > now]
+
+
+@router.post("/{family_id}/invites", status_code=201, response_model=InviteOut)
+def create_invite(
+    family: Family = Depends(member_family),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    invite = Invite(
+        family_id=family.id,
+        code=secrets.token_urlsafe(9),  # 12 个字符，URL 安全
+        created_by=user.id,
+        expires_at=utcnow() + INVITE_TTL,
+    )
+    db.add(invite)
+    db.commit()
+    return invite
+
+
+@router.delete("/{family_id}/invites/{invite_id}", status_code=204)
+def revoke_invite(
+    invite_id: uuid.UUID,
+    family: Family = Depends(member_family),
+    db: Session = Depends(get_db),
+):
+    invite = db.get(Invite, invite_id)
+    if invite is None or invite.family_id != family.id:
+        raise HTTPException(status_code=404, detail="邀请不存在")
+    invite.revoked_at = utcnow()
     db.commit()
