@@ -7,9 +7,21 @@ from sqlalchemy.orm import Session
 from app.deps import current_user, get_db, member_family
 from app.models import Family, Item, User
 from app.schemas import ItemIn, ItemOut, ItemPatch
-from app.services import escape_like, get_location_in_family, item_out, location_paths
+from app.services import (
+    escape_like,
+    get_location_in_family,
+    item_out,
+    location_paths,
+    lock_family,
+)
 
 router = APIRouter(prefix="/families/{family_id}/items", tags=["items"])
+
+
+def _lock(db: Session, family: Family) -> None:
+    """和位置的删除串行化，避免把物品放进正在被删除的位置；家庭已被解散时 404。"""
+    if not lock_family(db, family.id):
+        raise HTTPException(status_code=404, detail="家庭不存在")
 
 
 def _get_item(db: Session, family: Family, item_id: uuid.UUID) -> Item:
@@ -29,7 +41,9 @@ def list_items(
     """q：按名称/条码/备注模糊搜索；barcode：按条码精确匹配；都不传则返回最近更新的物品。"""
     stmt = select(Item).where(Item.family_id == family.id)
     filtered = False
-    if barcode and barcode.strip():
+    if barcode is not None and not barcode.strip():
+        return []  # 扫到空条码时按"没有匹配"处理
+    if barcode:
         stmt = stmt.where(Item.barcode == barcode.strip())
         filtered = True
     if q and q.strip():
@@ -42,7 +56,7 @@ def list_items(
             )
         )
         filtered = True
-    stmt = stmt.order_by(Item.updated_at.desc()).limit(200 if filtered else 50)
+    stmt = stmt.order_by(Item.updated_at.desc(), Item.id).limit(200 if filtered else 50)
     paths = location_paths(db, family.id)
     return [item_out(i, paths) for i in db.scalars(stmt).all()]
 
@@ -54,6 +68,7 @@ def create_item(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
+    _lock(db, family)
     get_location_in_family(db, family.id, body.location_id)
     item = Item(
         family_id=family.id,
@@ -91,6 +106,7 @@ def update_item(
     if body.note is not None:
         item.note = body.note
     if body.location_id is not None:
+        _lock(db, family)
         get_location_in_family(db, family.id, body.location_id)
         item.location_id = body.location_id
     item.updated_by = user.id

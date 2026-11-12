@@ -116,3 +116,9 @@ def test_patch_reports_current_editor(client, new_client, fam):
     invite_and_join(client, bob, fam)
     r = bob.patch(f"/api/families/{fam}/items/{iid}", json={"note": "在沙发上"})
     assert r.json()["updated_by_name"] == "bob"
+
+
+def test_blank_barcode_matches_nothing(client, fam):
+    loc = create_location(client, fam, "客厅")
+    create_item(client, fam, "遥控器", loc)
+    assert client.get(f"/api/families/{fam}/items", params={"barcode": " "}).json() == []

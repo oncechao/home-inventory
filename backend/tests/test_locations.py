@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from app.models import Location
 from helpers import create_family, create_location, invite_and_join, register
 
 
@@ -108,3 +109,20 @@ def test_patch_reports_current_editor(client, new_client, fam):
     invite_and_join(client, bob, fam)
     r = bob.patch(f"/api/families/{fam}/locations/{loc}", json={"name": "大客厅"})
     assert r.json()["updated_by_name"] == "bob"
+
+
+def test_tree_walks_tolerate_forged_cycle(app, client, fam):
+    a = create_location(client, fam, "A")
+    b = create_location(client, fam, "B", a)
+    c = create_location(client, fam, "C")
+    with app.state.SessionLocal() as db:
+        db.get(Location, uuid.UUID(a)).parent_id = uuid.UUID(b)
+        db.commit()
+
+    r = client.get(f"/api/families/{fam}/locations")
+    assert r.status_code == 200
+    for loc in r.json():
+        assert 0 < len(loc["path"]) <= 3
+
+    r = client.patch(f"/api/families/{fam}/locations/{c}", json={"parent_id": a})
+    assert r.status_code == 409

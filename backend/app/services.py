@@ -33,10 +33,18 @@ def location_paths(db: Session, family_id: uuid.UUID) -> dict[uuid.UUID, list[Pa
     cache: dict[uuid.UUID, list[PathNode]] = {}
 
     def path_of(location_id: uuid.UUID) -> list[PathNode]:
-        if location_id not in cache:
-            row = by_id[location_id]
-            parent = path_of(row.parent_id) if row.parent_id in by_id else []
-            cache[location_id] = parent + [PathNode(id=row.id, name=row.name)]
+        # 迭代往上走，遇到缓存、顶层、不存在的上级或重复节点（数据里有环）就停下，避免无限递归。
+        chain: list[uuid.UUID] = []
+        seen: set[uuid.UUID] = set()
+        current: uuid.UUID | None = location_id
+        while current in by_id and current not in cache and current not in seen:
+            seen.add(current)
+            chain.append(current)
+            current = by_id[current].parent_id
+        prefix = cache[current] if current in cache else []
+        for node_id in reversed(chain):
+            prefix = prefix + [PathNode(id=node_id, name=by_id[node_id].name)]
+            cache[node_id] = prefix
         return cache[location_id]
 
     return {location_id: path_of(location_id) for location_id in by_id}
@@ -52,9 +60,11 @@ def would_create_cycle(
         ).all()
     )
     current: uuid.UUID | None = new_parent_id
+    seen: set[uuid.UUID] = set()
     while current is not None:
-        if current == location_id:
-            return True
+        if current == location_id or current in seen:
+            return True  # 数据里已有环时也当作循环，拒绝移动
+        seen.add(current)
         current = parents.get(current)
     return False
 

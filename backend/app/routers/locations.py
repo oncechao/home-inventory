@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.deps import current_user, get_db, member_family
@@ -10,6 +11,7 @@ from app.schemas import LocationDetail, LocationIn, LocationOut, LocationPatch
 from app.services import (
     get_location_in_family,
     item_out,
+    lock_family,
     location_out,
     location_paths,
     would_create_cycle,
@@ -17,6 +19,12 @@ from app.services import (
 
 router = APIRouter(prefix="/families/{family_id}/locations", tags=["locations"])
 lookup_router = APIRouter(tags=["locations"])
+
+
+def _lock(db: Session, family: Family) -> None:
+    """串行化同一家庭的树结构写入；家庭已被解散时 404。"""
+    if not lock_family(db, family.id):
+        raise HTTPException(status_code=404, detail="家庭不存在")
 
 
 @router.get("", response_model=list[LocationOut])
@@ -37,6 +45,7 @@ def create_location(
     db: Session = Depends(get_db),
 ):
     if body.parent_id is not None:
+        _lock(db, family)
         get_location_in_family(db, family.id, body.parent_id, "上级位置不存在")
     location = Location(
         family_id=family.id,
@@ -85,6 +94,7 @@ def update_location(
     if body.note is not None:
         location.note = body.note
     if "parent_id" in body.model_fields_set:
+        _lock(db, family)
         if body.parent_id is not None:
             get_location_in_family(db, family.id, body.parent_id, "上级位置不存在")
             if would_create_cycle(db, family.id, location.id, body.parent_id):
@@ -103,12 +113,17 @@ def delete_location(
     db: Session = Depends(get_db),
 ):
     location = get_location_in_family(db, family.id, location_id)
+    _lock(db, family)
     has_child = db.scalar(select(Location.id).where(Location.parent_id == location.id).limit(1))
     has_item = db.scalar(select(Item.id).where(Item.location_id == location.id).limit(1))
     if has_child or has_item:
         raise HTTPException(status_code=409, detail="位置里还有子位置或物品，请先移走")
     db.delete(location)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="位置里还有子位置或物品，请先移走")
 
 
 @lookup_router.get("/locations/{location_id}")
