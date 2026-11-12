@@ -23,6 +23,8 @@ function save(id: string | null) {
 
 export const session = reactive({
   loaded: false,
+  loadError: false, // 首次加载会话时连不上服务器
+  pendingPath: null as string | null, // 加载失败时想去的页面，重试时用
   user: null as User | null,
   families: [] as Family[],
   currentFamilyId: null as string | null,

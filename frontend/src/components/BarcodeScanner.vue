@@ -1,3 +1,14 @@
+<script lang="ts">
+import { setZXingModuleOverrides } from 'vue-qrcode-reader'
+import wasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url'
+
+// 扫码用的 ZXing wasm 由本站自己提供，不从 jsDelivr CDN 加载。
+// 放在普通 <script> 里：这个组件的代码块加载时执行一次，早于任何识别，且不进入主包。
+setZXingModuleOverrides({
+  locateFile: (path: string, prefix: string) => (path.endsWith('.wasm') ? wasmUrl : prefix + path),
+})
+</script>
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import { QrcodeStream } from 'vue-qrcode-reader'

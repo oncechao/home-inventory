@@ -36,9 +36,12 @@ router.beforeEach(async (to) => {
   if (!session.loaded) {
     try {
       await loadSession()
+      session.loadError = false
     } catch (e) {
-      // 网络或服务器错误：提示后停在原地，下次导航时会重试
+      // 网络或服务器错误：App.vue 显示重试页面，重试时再次导航到原来的页面
       toastError(e)
+      session.loadError = true
+      session.pendingPath = to.fullPath
       return false
     }
   }
