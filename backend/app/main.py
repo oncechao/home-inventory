@@ -4,6 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import Settings, get_settings
 from app.db import make_engine
+from app.routers import auth
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -32,6 +33,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/health")
     def health():
         return {"ok": True}
+
+    app.include_router(auth.router, prefix="/api")
 
     return app
 
