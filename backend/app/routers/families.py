@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.deps import current_user, get_db, member_family
 from app.models import Family, Invite, Membership, User, as_utc, utcnow
 from app.schemas import FamilyDetail, FamilyIn, FamilyOut, InviteOut, MemberOut
-from app.services import delete_family
+from app.services import delete_family, lock_family
 
 INVITE_TTL = timedelta(days=7)
 
@@ -67,6 +67,8 @@ def rename_family(
 
 @router.delete("/{family_id}", status_code=204)
 def dissolve_family(family: Family = Depends(member_family), db: Session = Depends(get_db)):
+    if not lock_family(db, family.id):
+        raise HTTPException(status_code=404, detail="家庭不存在")
     delete_family(db, family.id)
     db.commit()
 
@@ -78,6 +80,8 @@ def remove_member(
     db: Session = Depends(get_db),
 ):
     """移除成员；user_id 是自己时就是退出家庭。最后一个人离开时删除整个家庭。"""
+    if not lock_family(db, family.id):
+        raise HTTPException(status_code=404, detail="家庭不存在")
     membership = db.get(Membership, (user_id, family.id))
     if membership is None:
         raise HTTPException(status_code=404, detail="成员不存在")

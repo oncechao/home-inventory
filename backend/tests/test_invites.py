@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 
@@ -65,8 +65,12 @@ def test_expired_invite_rejected(app, client, new_client):
 def test_invite_expires_in_7_days(client):
     register(client, "alice")
     fid = create_family(client)
+    before = utcnow()
     invite = client.post(f"/api/families/{fid}/invites").json()
-    assert invite["expires_at"]
+    expires_at = datetime.fromisoformat(invite["expires_at"])
+    assert expires_at.tzinfo is not None
+    week = timedelta(days=7)
+    assert before + week - timedelta(minutes=1) <= expires_at <= utcnow() + week + timedelta(seconds=1)
     assert len(client.get(f"/api/families/{fid}/invites").json()) == 1
 
 
