@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.db
+
+# Node
+node_modules/
+frontend/dist/
+
+# Env
+.env
+.env.*
+!.env.example
+.vercel
