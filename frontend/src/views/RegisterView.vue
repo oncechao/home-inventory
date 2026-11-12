@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { loadSession } from '../session'
+import BrandHeader from '../components/BrandHeader.vue'
 import { safeRedirect, toastError } from '../ui'
 
 const route = useRoute()
@@ -32,9 +33,9 @@ async function submit() {
 </script>
 
 <template>
-  <van-nav-bar title="注册" />
+  <BrandHeader title="创建账号" subtitle="注册后可以创建家庭，或加入家人的家庭" />
   <van-form @submit="submit">
-    <van-cell-group inset style="margin-top: 16px">
+    <van-cell-group inset>
       <van-field
         v-model="username"
         label="用户名"

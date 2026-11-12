@@ -6,7 +6,8 @@ import { api } from '../api'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { session } from '../session'
 import type { Item } from '../types'
-import { goBack, pathText, toastError } from '../ui'
+import PageNav from '../components/PageNav.vue'
+import { pathText, toastError } from '../ui'
 
 const router = useRouter()
 const busy = ref(false)
@@ -66,7 +67,7 @@ function rescan() {
 </script>
 
 <template>
-  <van-nav-bar title="扫码" left-arrow @click-left="goBack(router, '/')" />
+  <PageNav title="扫码" back="/" home />
 
   <template v-if="matches.length">
     <van-cell-group inset :title="`条码 ${scanned} 对应 ${matches.length} 个物品`" style="margin-top: 12px">

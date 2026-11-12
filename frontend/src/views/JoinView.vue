@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
 import { refreshFamilies, setCurrentFamily } from '../session'
 import type { InvitePreview } from '../types'
+import PageNav from '../components/PageNav.vue'
 import { toastError } from '../ui'
 
 const route = useRoute()
@@ -42,7 +43,7 @@ async function accept() {
 </script>
 
 <template>
-  <van-nav-bar title="加入家庭" />
+  <PageNav title="加入家庭" home />
   <van-empty v-if="invalid" image="error" description="邀请无效或已过期">
     <van-button round type="primary" @click="router.replace('/')">返回首页</van-button>
   </van-empty>

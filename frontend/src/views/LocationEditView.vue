@@ -5,7 +5,8 @@ import { api } from '../api'
 import LocationPicker from '../components/LocationPicker.vue'
 import { session } from '../session'
 import type { Location } from '../types'
-import { goBack, toastError } from '../ui'
+import PageNav from '../components/PageNav.vue'
+import { toastError } from '../ui'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,11 +47,7 @@ async function save() {
 </script>
 
 <template>
-  <van-nav-bar
-    :title="editingId ? '编辑位置' : '新建位置'"
-    left-arrow
-    @click-left="goBack(router, editingId ? `/l/${editingId}` : '/locations')"
-  />
+  <PageNav :title="editingId ? '编辑位置' : '新建位置'" :back="editingId ? `/l/${editingId}` : '/locations'" home />
   <van-form @submit="save">
     <van-cell-group inset style="margin-top: 12px">
       <van-field

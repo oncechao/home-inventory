@@ -5,6 +5,8 @@ import { showFailToast } from 'vant'
 import { api } from '../api'
 import { clearSession, refreshFamilies, session, setCurrentFamily } from '../session'
 import type { Family } from '../types'
+import BrandHeader from '../components/BrandHeader.vue'
+import PageNav from '../components/PageNav.vue'
 import { toastError } from '../ui'
 
 const router = useRouter()
@@ -47,12 +49,11 @@ async function logout() {
 </script>
 
 <template>
-  <van-nav-bar
-    title="开始使用"
-    :left-arrow="session.families.length > 0"
-    @click-left="router.back()"
+  <PageNav v-if="session.families.length > 0" back="/family" home />
+  <BrandHeader
+    :title="`你好，${session.user?.username ?? ''}`"
+    subtitle="先创建一个家庭，或者加入家人的家庭"
   />
-  <p class="hint">你好，{{ session.user?.username }}。先创建一个家庭，或者加入家人的家庭。</p>
 
   <van-form @submit="create">
     <van-cell-group inset title="创建新家庭">

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { toDataURL } from 'qrcode'
 import { api } from '../api'
 import { session } from '../session'
 import type { Location } from '../types'
-import { goBack, pathText, toastError } from '../ui'
+import PageNav from '../components/PageNav.vue'
+import { pathText, toastError } from '../ui'
 
 const route = useRoute()
-const router = useRouter()
 const all = ref<Location[]>([])
 const selected = ref<string[]>([])
 const qr = ref<Record<string, string>>({})
@@ -48,7 +48,7 @@ function print() {
 
 <template>
   <div class="no-print">
-    <van-nav-bar title="打印二维码标签" left-arrow @click-left="goBack(router, '/locations')" />
+    <PageNav title="打印二维码标签" back="/locations" home />
     <p class="hint">勾选要打印的位置。打印后贴在收纳箱上，用手机相机扫一下就能看到里面放了什么。</p>
     <van-checkbox-group v-model="selected">
       <van-cell-group inset>

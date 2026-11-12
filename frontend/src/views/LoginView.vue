@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { loadSession } from '../session'
+import BrandHeader from '../components/BrandHeader.vue'
 import { safeRedirect, toastError } from '../ui'
 
 const route = useRoute()
@@ -26,9 +27,9 @@ async function submit() {
 </script>
 
 <template>
-  <van-nav-bar title="登录" />
+  <BrandHeader title="家庭物品管理" subtitle="记住家里每样东西放在哪" />
   <van-form @submit="submit">
-    <van-cell-group inset style="margin-top: 16px">
+    <van-cell-group inset>
       <van-field
         v-model="username"
         label="用户名"

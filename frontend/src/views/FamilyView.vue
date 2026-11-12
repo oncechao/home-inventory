@@ -5,6 +5,7 @@ import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant'
 import { api } from '../api'
 import { clearSession, currentFamily, refreshFamilies, session, setCurrentFamily } from '../session'
 import type { FamilyDetail, Invite } from '../types'
+import NameTile from '../components/NameTile.vue'
 import { formatTime, toastError } from '../ui'
 
 const router = useRouter()
@@ -160,21 +161,29 @@ async function logout() {
 </script>
 
 <template>
-  <van-nav-bar title="家庭与我" />
+  <header class="tab-head"><h1>家庭与我</h1></header>
 
-  <van-cell-group inset title="当前家庭" style="margin-top: 4px">
-    <van-cell
-      :title="currentFamily()?.name"
-      :value="session.families.length > 1 ? '切换' : ''"
-      :is-link="session.families.length > 1"
-      @click="session.families.length > 1 && (switchShow = true)"
-    />
-    <van-cell title="修改家庭名称" is-link @click="(renameValue = detail?.name ?? ''), (renameShow = true)" />
-    <van-cell title="创建或加入其他家庭" is-link to="/onboarding" />
+  <section class="family-hero card">
+    <NameTile :name="currentFamily()?.name ?? '家'" :size="52" />
+    <div class="fh-text">
+      <div class="fh-name">{{ currentFamily()?.name }}</div>
+      <div class="fh-sub">{{ detail?.members.length ?? 0 }} 位成员 · 你是 {{ session.user?.username }}</div>
+    </div>
+    <button v-if="session.families.length > 1" class="fh-switch" @click="switchShow = true">
+      <van-icon name="exchange" /> 切换
+    </button>
+  </section>
+
+  <van-cell-group inset title="家庭设置">
+    <van-cell title="修改家庭名称" icon="edit" is-link @click="(renameValue = detail?.name ?? ''), (renameShow = true)" />
+    <van-cell title="创建或加入其他家庭" icon="add-o" is-link to="/onboarding" />
   </van-cell-group>
 
   <van-cell-group v-if="detail" inset :title="`成员（${detail.members.length}）`">
-    <van-cell v-for="m in detail.members" :key="m.id" :title="m.username" :label="`加入于 ${formatTime(m.joined_at)}`">
+    <van-cell v-for="m in detail.members" :key="m.id" :title="m.username" :label="`加入于 ${formatTime(m.joined_at)}`" center>
+      <template #icon>
+        <NameTile :name="m.username" :size="38" class="member-tile" />
+      </template>
       <template #right-icon>
         <van-button size="mini" :type="m.id === session.user?.id ? 'warning' : 'default'" @click="removeMember(m.id, m.username)">
           {{ m.id === session.user?.id ? '退出' : '移除' }}
@@ -194,8 +203,8 @@ async function logout() {
   </van-cell-group>
 
   <van-cell-group inset :title="`我（${session.user?.username}）`">
-    <van-cell title="修改密码" is-link @click="passwordShow = true" />
-    <van-cell title="退出登录" is-link @click="logout" />
+    <van-cell title="修改密码" icon="lock" is-link @click="passwordShow = true" />
+    <van-cell title="退出登录" icon="revoke" is-link @click="logout" />
   </van-cell-group>
 
   <div class="block-button">
@@ -225,3 +234,43 @@ async function logout() {
     <van-field v-model="newPassword" type="password" label="新密码" placeholder="至少 8 位" autocomplete="new-password" />
   </van-dialog>
 </template>
+
+<style scoped>
+.family-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 16px 0;
+  padding: 18px;
+}
+.fh-text {
+  flex: 1;
+  min-width: 0;
+}
+.fh-name {
+  font-size: 19px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fh-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--hi-text-2);
+}
+.fh-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--hi-primary-soft);
+  color: var(--hi-primary-dark);
+  font-size: 13px;
+}
+.member-tile {
+  margin-right: 12px;
+}
+</style>

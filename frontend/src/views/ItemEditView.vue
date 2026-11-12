@@ -7,7 +7,8 @@ import BarcodeScanner from '../components/BarcodeScanner.vue'
 import LocationPicker from '../components/LocationPicker.vue'
 import { session } from '../session'
 import type { Item, Location } from '../types'
-import { goBack, toastError } from '../ui'
+import PageNav from '../components/PageNav.vue'
+import { toastError } from '../ui'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,11 +72,7 @@ async function save() {
 </script>
 
 <template>
-  <van-nav-bar
-    :title="editingId ? '编辑物品' : '添加物品'"
-    left-arrow
-    @click-left="goBack(router, editingId ? `/items/${editingId}` : '/')"
-  />
+  <PageNav :title="editingId ? '编辑物品' : '添加物品'" :back="editingId ? `/items/${editingId}` : '/'" home />
 
   <van-empty v-if="loaded && !locations.length" description="还没有任何位置，先建一个位置才能放物品">
     <van-button round type="primary" @click="router.push('/locations/new')">新建位置</van-button>
