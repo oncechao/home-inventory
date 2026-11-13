@@ -1,0 +1,12 @@
+# 用 vercel CLI 直接部署本地目录时排除的文件（从 GitHub 部署时只用仓库里的文件，不受影响）
+.venv/
+**/node_modules/
+frontend/dist/
+*.db
+.env
+.env.*
+!.env.example
+.pytest_cache/
+__pycache__/
+.claude/
+docs/
